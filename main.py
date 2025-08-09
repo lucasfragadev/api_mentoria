@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, HTTPException
 from typing import List # Vamos precisar de um Lista
 
 from schemas import Mentor, MentorCreate # Importação a partir do schemas.py
@@ -13,7 +13,7 @@ db_mentors = [
 ]
 
 # Rota de Status
-@app.get("/health") # O @app.get e o decorator // O que ta entre parenteses e o path // path = url = "/"
+@app.get("/health") # O @app.get e o decorator // O que ta entre parenteses e o path // path = url = "/health"
 def health():
    return {"status": "OK"}
 
@@ -32,3 +32,15 @@ def create_mentor(mentor: MentorCreate):
    new_mentor = Mentor(id=new_id, **mentor.model_dump())
    db_mentors.append(new_mentor)
    return new_mentor
+
+# Endpoint: rota para BUSCAR um mentor especifico pelo ID
+@app.get("/mentors/{mentor_id}", response_model=Mentor)
+def get_mentor(mentor_id: int):
+   """
+   Busca e retorna um único mentor cadastrado
+   """
+   for mentor in db_mentors:
+      if mentor.id == mentor_id:
+         return mentor
+
+   raise HTTPException(status_code=404, detail="Mentor Not Found")
