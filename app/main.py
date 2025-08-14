@@ -1,20 +1,25 @@
 import logging 
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Depends
 from typing import List # Vamos precisar de um Lista
 
-from schemas import Mentor, MentorCreate # Importação a partir do schemas.py
+from app.schemas import Mentor, MentorCreate # Importação a partir do schemas.py
+from app.database import engine, SessionLocal
+import app.models as models
+from sqlalchemy.orm import Session
+
+models.Base.metadata.create_all(bind=engine)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 app = FastAPI() ## Criou uma instância do FastAPI / Criou um objeto
 
-## Um Mock (mock é uma forma de testar a aplicação com exemplos práticos // Tema: testes)
-db_mentors = [
-   Mentor(id=1, name='João Velloso', email='joaovelosso.dev@gmail.com', skills=['Python', 'Algorithm', 'Rust'], active=True), 
-   Mentor(id=2, name='Rafaela Mattos', email='rafaprogramador@gmail.com', skills=['Java', 'SpringBoot', 'SQL'], active=True),
-   Mentor(id=3, name='Pedro', email='pedrinvelosso.dev@gmail.com', skills=['Java', 'COBOL', 'Compilers'], active=False)
-]
-
+def get_db():
+   db = SessionLocal() # Abrir sessão
+   try: 
+      yield db # Entregar para a rota usar
+   finally: 
+      db.close() # Garante o fechamento
+    
 # Rota de Status
 @app.get("/health") # O @app.get e o decorator // O que ta entre parenteses e o path // path = url = "/health"
 def health():
@@ -29,13 +34,33 @@ def get_mentors():
    return db_mentors
 
 # Endpoint: rota para CRIAR os mentores
-@app.post("/mentors", response_model=Mentor, status_code=status.HTTP_201_CREATED)
-def create_mentor(mentor: MentorCreate):
-   new_id = len(db_mentors) + 1
-   new_mentor = Mentor(id=new_id, **mentor.model_dump())
-   db_mentors.append(new_mentor)
-   return new_mentor
+@app.post("/mentors", response_model=schemas.Mentor, status_code=status.HTTP_201_CREATED)
+def create_mentor(mentor: schemas.MentorCreate, db: Session = Depends(get_db)):
+   
+   skills_str = ",".join(mentor.skills)
+   db_mentor = models.Mentor(**mentor.model_dump(exclude={'skills'}), skills=skills_str)
+   db.add(db_mentor)
+   db.commit()
+   db.refresh(db_mentor)
+   return db_mentor
 
+@app.post("/mentors-manual", response_model=schemas.Mentor, status_code=status.HTTP_201_CREATED)
+def create_mentor(mentor: schemas.MentorCreate):
+      
+   db = SessionLocal()
+   try:
+      skills_str = ",".join(mentor.skills)
+      db_mentor = models.Mentor(**mentor.model_dump(exclude={'skills'}), skills=skills_str)
+      db.add(db_mentor)
+      db.commit()
+      db.refresh(db_mentor)
+      return db_mentor
+   except Exception as e:
+      db.rollback()
+      raise HTTPException(status_code=500, detail='erro ao criar mentor / interno')
+   finally:
+     db.close()
+   
 # Endpoint: rota para BUSCAR um mentor especifico pelo ID
 @app.get("/mentors/{mentor_id}", response_model=Mentor)
 def get_mentor(mentor_id: int):
