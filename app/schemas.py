@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr 
-from typing import List 
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import List, Any
 
 # Informações padrões para CRIAR e OBTER Mentores.
 class MentorBase(BaseModel):
@@ -17,3 +17,12 @@ class MentorCreate(MentorBase):
 # As informações virão da classe MentorBase
 class Mentor(MentorBase):
     id: int
+    
+    @field_validator('skills', mode='before')
+    @classmethod
+    def split_skills_string(cls, valor: Any) -> List[str]:
+        if isinstance(valor, str):
+            return [skill.strip() for skill in valor.split(',')]
+        return valor
+    class Config:
+        from_attributes = True
