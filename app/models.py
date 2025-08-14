@@ -9,3 +9,4 @@ class Mentor(Base):
     email = Column(String, unique=True, index=True)
     skills = Column(String)
     active = Column(Boolean, default=True)
+    linkedin_url = Column(String, nullable=True)

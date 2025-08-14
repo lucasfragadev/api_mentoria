@@ -8,8 +8,6 @@ import app.models as models
 from sqlalchemy.orm import Session
 from app import schemas
 
-models.Base.metadata.create_all(bind=engine)
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 app = FastAPI() ## Criou uma instância do FastAPI / Criou um objeto
@@ -79,6 +77,7 @@ def update_mentor(mentor_id: int, mentor_data: schemas.MentorCreate, db: Session
    mentor_to_update.email = mentor_data.email
    mentor_to_update.skills = ",".join(mentor_data.skills) # Aqui é necessário fazer a conversão
    mentor_to_update.active = mentor_data.active
+   mentor_to_update.linkedin_url = mentor_data.linkedin_url
    
    db.commit()
    db.refresh(mentor_to_update)

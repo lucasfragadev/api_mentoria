@@ -7,6 +7,7 @@ class MentorBase(BaseModel):
     email: EmailStr ## Esse "EmailStr" contém as validações que poderiam ser feitas com um Regex // TODO: Crie um Regex, pode usar IA, mas pesquise.
     skills: List[str]
     active: bool = True
+    linkedin_url: str | None = None
 
 # Schema utilizado para CRIAR um novo mentor (não teremos id).
 # As informações virão da classe MentorBase.
